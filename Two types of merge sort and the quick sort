@@ -1,0 +1,108 @@
+#include <iostream>
+
+using namespace std;
+
+void Merge(int A[], int sub1, int sub2, int sub3)// sub2 means the last element of the first piece
+{
+    int p1 = sub1, p2 = sub2 + 1, p = 0;
+    int *B = new int[sub3 - sub1 + 1];
+    while(p1 <= sub2 && p2 <= sub3)
+    {
+        if(A[p1] <= A[p2]){
+            B[p] = A[p1];
+            p1++;
+        }
+        else{
+            B[p] = A[p2];
+            p2++;
+        }
+        p++;
+    }
+    if(p1 == sub2 + 1){
+        for(int i=p; i<sub3-sub1+1; i++)
+            B[i] = A[p2 + i- p];
+    }
+    else{
+        for(int i=p; i<sub3-sub1+1; i++)
+            B[i] = A[p1 + i - p];
+    }
+    for(int i=sub1; i<=sub3; i++)
+        A[i] = B[i - sub1];
+}
+
+void MergeSort_BottomUp(int A[], int n)//From the bottom to the top, BETTER!
+{
+    int t = 1;
+    int s, i;
+    while(t < n)
+    {
+        s = t; t = 2*s; i = 0;
+        while(i + t <=n){
+            Merge(A, i+1, i+s, i+t);
+            i += t;
+        }
+        if(i + s < n)
+            Merge(A, i+1, i+s, n);
+    }
+}
+
+void MergeSort_Recursive(int A[], int left, int right)//From the top to the bottom
+{
+    if(left >= right)
+        return;
+    int mid = (left + right) / 2;
+    MergeSort_Recursive(A, left, mid);
+    MergeSort_Recursive(A, mid + 1, right);
+    Merge(A, left, mid, right);
+}
+
+void swap(int &x, int &y)
+{
+    int tmp = x;
+    x = y;
+    y = tmp;
+}
+
+void QuickSort(int A[], int left, int right)
+{
+    if(left >= right)
+        return;
+    int i=left, pivot = A[right];
+    for(int j=left; j<right; j++){
+        if(A[j] < pivot){
+            swap(A[i], A[j]);
+            i++;
+        }
+    }
+    swap(A[i], A[right]);
+    QuickSort(A, left, i-1);
+    QuickSort(A, i+1, right);
+}
+
+int main(){
+    int A[100], A1[100], A2[100], A3[100];
+    int n;
+
+    cin >> n;
+    for(int i=1; i<=n; i++)
+    {
+        cin >> A[i];
+        A1[i] = A[i]; A2[i] = A[i]; A3[i] = A[i];
+    }
+
+    MergeSort_BottomUp(A1, n);//merge sort type 1
+    MergeSort_Recursive(A2, 1, n);//merge sort 2
+    QuickSort(A3, 1, n);
+
+    cout << '\n' << "The result of merge sort type 1 :" << '\n';
+    for(int i=1; i<=n; i++)
+        cout << A1[i] << ' ';
+    cout << '\n' << "The result of merge sort type 2 :" << '\n';
+    for(int i=1; i<=n; i++)
+        cout << A2[i] << ' ';
+    cout << '\n' << "The result of quick sort :" << '\n';
+    for(int i=1; i<=n; i++)
+        cout << A3[i] << ' ';
+
+    return 0;
+}
