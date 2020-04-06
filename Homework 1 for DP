@@ -1,0 +1,84 @@
+#include <iostream>
+
+/** OPT[i][j]: The minimum width when consider the first i books and the current thickness is j 
+ * If j < ti: OPT[i][j] = OPT[i-1][j] + wi
+ * If j >= ti: OPT[i][j] = min{OPT[i-1][j]+wi, OPT[i-1][j-ti]}
+ */
+
+using namespace std;
+
+const int Max_width = 200007;
+int OPT[2007][Max_width+1];
+
+struct Book{
+    int w, t;
+    Book(){
+        w = 0; t = 0;
+    }
+} book[2007];
+
+inline int Min(int a, int b){
+    if(a > b)
+        return b;
+    return a;
+}
+
+class DP{
+private:
+    int n;
+    int res;
+    int sum_t;
+public:
+    explicit DP(int amount = 0):n(amount){
+        res = 0;
+        sum_t = 0;
+    }
+
+    void init(int amount){
+        for(int i = 0; i <= amount; i++){
+            OPT[i][0] = 0;
+            OPT[0][i] = 0;
+        }
+    }
+    void input()
+    {
+        cin >> n;
+        init(n);
+        for(int i = 1; i <= n; i++){
+            cin >> book[i].t >> book[i].w;
+            sum_t += book[i].t;
+        }
+    }
+    void func()                      //calculate the minimum total thickness
+    {
+        input();
+        int total_t = 0;
+        for(int i = 1; i <= n; i++){
+            total_t += book[i].t;
+            for(int j = 0; j <= total_t; j++)
+            {
+                if(j >= book[i].t)
+                    OPT[i][j] = Min(OPT[i-1][j]+book[i].w, OPT[i-1][j-book[i].t]);
+                else
+                    OPT[i][j] = OPT[i-1][j]+book[i].w;
+            }
+        }
+
+        for(int j = 0; j <= sum_t; j++){
+            if(OPT[n][j] > j)
+                continue;
+            res = j;
+            break;
+        }
+        output();
+    }
+    void output(){
+        cout << res << '\n';
+    }
+};
+
+int main(){
+    DP obj;
+    obj.func();
+    return 0;
+}
