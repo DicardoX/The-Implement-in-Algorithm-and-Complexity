@@ -1,0 +1,132 @@
+#include <vector>
+#include <iostream>
+#include <fstream>
+using namespace std;
+//Please put this source code in the same directory with SCC.in
+//And do NOT change the file name.
+/*
+This function computes the number of Strongly Connected Components in a graph
+Args:
+    n: The number of nodes in the graph. The nodes are indexed as 0~n-1
+    edge: The edges in the graph. For each element (a,b) in edge, it means
+          there is a directed edge from a to b
+          Notice that there may exists multiple edge and self-loop
+Return:
+    The number of strongly connected components in the graph.
+*/
+const int maxn = 100007;
+int low[maxn];
+int dfn[maxn];
+bool visited[maxn];
+int Total, Index;
+struct EdgeNode{
+    int num;
+    explicit EdgeNode(int n = 0):num(n){}
+};
+vector<EdgeNode> map[maxn];
+
+inline int Min(int a, int b)
+{
+    if(a < b)
+        return a;
+    return b;
+}
+
+void init()
+{
+    for(int i=0; i<maxn; i++){
+        low[i] = 0;
+        dfn[i] = 0;
+        visited[i] = false;
+    }
+    Total = 0; Index = 0;
+}
+
+void map_init(int n, int m, vector<pair<int, int>> &edge)
+{
+    //vector<pair<int, int>> :: iterator itr;
+    int fir, sec;
+    for(int i=0; i<m; i++){
+        fir = (*edge.end()).first;
+        sec = (*edge.end()).second;
+        edge.pop_back();
+        EdgeNode e(sec);
+        map[fir].push_back(e);
+    }
+}
+
+void Tarjan(int u){
+    visited[u] = true;
+    low[u] = dfn[u] = ++Index;
+    for(vector<EdgeNode>::iterator itr = map[u].begin(); itr != map[u].end(); itr++)
+    {
+        int v = (*itr).num;
+        if(!visited[v])
+            Tarjan(v);
+        if(visited[v])
+            low[u] = Min(low[u], low[v]);
+    }
+    if(dfn[u] == low[u])
+        Total++;
+}
+
+int SCC(int n, vector<pair<int,int>>& edge) {
+    map_init(n, edge.size(), edge);         // Initialize the neighbor map
+    init();                                    // Initialize variables
+
+    for(int i=0; i<n; i++)
+    {
+        if(!visited[i])
+            Tarjan(i);
+    }
+    return Total;
+
+/*    for (int i=0; i<n; i++){
+        for(vector<EdgeNode>::iterator itr = map[i].begin(); itr != map[i].end(); itr++)
+        {
+            EdgeNode tmp = *itr;
+            cout << " " << tmp.num << " ";
+        }
+        cout << endl;
+    }
+*/
+}
+//Please do NOT modify anything in main(). Thanks!
+int main()
+{
+    int m,n;
+    vector<pair<int,int>> edge;
+
+    ifstream fin;
+    ofstream fout;
+    fin.open("SCC.in");
+    fin>>n>>m;
+    int tmp1,tmp2;
+    for(int i=0;i<m;i++)
+    {
+        fin>>tmp1>>tmp2;
+        edge.push_back(pair<int,int>(tmp1,tmp2));
+    }
+    fin.close();
+    //int ans=SCC(n,edge);
+    fout.open("SCC.out");
+    fout << "<nodes count=\"100000\">" << '\n';
+    for(int i=0; i<n; i++)
+    {
+        fout << "<node id=\"" << i << ".0\" label=\"label" << i << "\"/>" << '\n';
+    }
+    fout << "</nodes>" << '\n';
+    fout << "<edges count=\"500000\">" << '\n';
+    
+    int fir, sec;
+    for(int i=0; i<m; i++)
+    {
+        fir = (*edge.end()).first;
+        sec = (*edge.end()).second;
+        edge.pop_back();
+        fout << "<edge id=\"" << i << "\" source=\"" << fir << ".0\" target=\"" << sec << ".0\"/>" << '\n';
+    }
+    fout.close();
+    return 0;
+}
+
