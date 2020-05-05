@@ -4,7 +4,7 @@
 
 using namespace std;
 const int maxn = 10007;
-const int maxCost = 100000007;
+const int inf = 100000007;
 
 struct Edge{
     int end, capacity, cost;
@@ -12,24 +12,22 @@ struct Edge{
 };
 vector<Edge> map[maxn];     // map[i] contains all edges that start from node_i
 vector<Edge> reverse_map[maxn];   // reverse graph
-bool visited[maxn];
-int tmp_path[maxn], Index;
+int tmp_path[maxn];
 int n, m, s, t;
-int flow, flow_cost, pre_flowCost;
+int flow, flow_cost;
 int cap;                    // bottleneck capacity
-int min_cost;               // Min_cost in the shortest path
 int total_minCost;
-int path[maxn], amount;     // Shortest path record, amount of edges in this path
+int path[maxn];     // Shortest path record, amount of edges in this path
 bool reach_end;
+int dist[maxn];
+int pre_node[maxn];
+bool ischanged;
 
-int bottleneck_capacity()
+int bottleneck_capacity(int amount)
 {
     int start, end;
     int min = 10000007;
-    //cout << "Path record is: ";
-    //for(int i=1; i<=amount; i++)
-        //cout << path[i] << ' ';
-    //cout << endl;
+
     for(int i=1; i<=amount-1; i++)
     {
         start = path[i];
@@ -48,44 +46,48 @@ int bottleneck_capacity()
     return min;
 }
 
-void DFS(int node, int cost){
-
-    //cout << "DFS returned with max flow = " << flow << " and minimum cost = " << flow_cost << ' ' << node << endl;
-    //cout << "current cost = " << cost << " current min cost = " << min_cost << endl;
-    if(map[node].empty())
-        return;
-    for(vector<Edge>::iterator itr = reverse_map[node].begin(); itr != reverse_map[node].end(); itr++)
-    {
-        if((*itr).capacity == 0) {        // This edge has been totally reversed
-            //cout << "End: " << (*itr).end << " is" << (*itr).capacity << endl;
-            continue;
-        }
-        int next = (*itr).end;
-
-        if(!visited[next]){
-            tmp_path[Index++] = next;
-            if(next == t){
-                reach_end = true;
-                Index--;
-                if(cost + (*itr).cost < min_cost) {
-                    for(int i=1; i<=Index; i++)
-                        path[i] = tmp_path[i];
-                    amount = Index;
-                    cap = bottleneck_capacity();
-                    min_cost = cost + (*itr).cost;
-                    total_minCost = min_cost * cap;
-                }
-                //cout << "t found! " << min_cost << ' ' <<cap << endl;
-                //exit(0);
-                continue;
-            }
-            visited[next] = true;
-            DFS(next, cost + (*itr).cost);
-            visited[next] = false;
-            Index--;
-        }
-        //cout << "From " << node << " to " << next << " has returned! " << endl;
+void Bellman_ford(int &idx){
+    for(int i=1; i<=n; i++){
+        dist[i] = inf;
+        pre_node[i] = 0;
     }
+    dist[s] = 0;
+    for(int i=1; i<=n-1; i++)
+    {
+        ischanged = false;
+        for(int j=1; j<=n; j++)
+        {
+            if(dist[j] != inf)
+                for(vector<Edge>::iterator itr = reverse_map[j].begin(); itr != reverse_map[j].end(); itr++)
+                {
+                    if((dist[(*itr).end] > dist[j] + (*itr).cost) && (*itr).capacity > 0){
+                        dist[(*itr).end] = dist[j] + (*itr).cost;
+                        pre_node[(*itr).end] = j;
+                        ischanged = true;
+                    }
+                }
+        }
+        if(!ischanged)
+            break;
+    }
+
+    if(dist[t] == inf)
+        reach_end = false;
+    else
+        reach_end = true;
+
+    int node = t;
+    tmp_path[idx++] = t;
+    while(node != s){
+        node = pre_node[node];
+        tmp_path[idx++] = node;
+    }
+    idx--;
+    for(int i=1; i<=idx; i++){
+        path[i] = tmp_path[idx-i+1];
+    }
+    cap = bottleneck_capacity(idx);
+    total_minCost = dist[t] * cap;
 }
 
 int getCost(int start, int end)
@@ -98,27 +100,19 @@ int getCost(int start, int end)
     exit(0);
 }
 
-void update_reverseGraph()
+void update_reverseGraph(int amount)
 {
-    //cout << "Max flow: " << flow << " Min cost: " << flow_cost << endl;
     int start, end;
-    //cap = bottleneck_capacity();        // Get the bottleneck capacity of this path
-    //if(cap == 0)
-        //return;
-    //cout << "bottleneck cap = " << cap << endl;
-    for(int i=1; i<=amount-1; i++)
-    {
+    for(int i=1; i<=amount-1; i++){
         start = path[i];
         end = path[i+1];
-        for(vector<Edge>::iterator itr = reverse_map[start].begin(); itr != reverse_map[start].end(); itr++)
-        {
+        for(vector<Edge>::iterator itr = reverse_map[start].begin(); itr != reverse_map[start].end(); itr++){
             if((*itr).end == end){
                 if((*itr).capacity < cap){
                     cout << "Error occurs when updating the capacity of the edge! throughput: " << cap << " capacity: " << (*itr).capacity <<  endl;
-                    //exit(0);
+                    exit(0);
                 }
                 (*itr).capacity -= cap;     // Update the capacity of the edge
-                //cout << "Updated " << (*itr).end << " to " << (*itr).capacity << endl;
             }
         }
     }
@@ -127,43 +121,28 @@ void update_reverseGraph()
         start = path[i];
         end = path[i-1];
         bool edge_exited = false;
-        for(vector<Edge>::iterator itr = reverse_map[start].begin(); itr != reverse_map[start].end(); itr++)
-        {
+        for(vector<Edge>::iterator itr = reverse_map[start].begin(); itr != reverse_map[start].end(); itr++){
             if((*itr).end == end){
                 edge_exited = true;
                 (*itr).capacity += cap;     // If existed, update the capacity of the reverse edge
             }
         }
-        if(!edge_exited)
-        {
+        if(!edge_exited){
             reverse_map[start].push_back(Edge(end, cap, -getCost(end, start)));     // If not existed, add a new reverse edge
         }
     }
-    /*for(int i=1; i<=n; i++){
-        for(vector<Edge>::iterator itr = reverse_map[i].begin(); itr != reverse_map[i].end(); itr++)
-            cout << (*itr).end << " cap is: " << (*itr).capacity << ' ';
-        cout << endl;
-    }*/
 }
 
 void find_shortestPath()
 {
-    min_cost = maxCost;
-    Index = 1;
-    for(int i=1; i<=maxn; i++)
-        visited[i] = false;
-    tmp_path[Index++] = s;
-    visited[s] = true;
-    DFS(s, 0);
-    //cout << "DFS doesn't have infinite loop!" << endl;
-    //cout << ' ' << min_cost << endl;
-    cout << "DFS finished!" << endl;
+    int idx = 1;
+    Bellman_ford(idx);
+
     if(reach_end)
     {
-        pre_flowCost = flow_cost;               // Update the previous flow cost
         flow_cost += total_minCost;                  // Update the minimum cost of the flow
         flow += cap;                            // Update the flow
-        update_reverseGraph();                  // Update reverse graph
+        update_reverseGraph(idx);                  // Update reverse graph
     }
 }
 
@@ -174,21 +153,12 @@ int main() {
     fin.open("MCMF.in");
     fin >> n >> m >> s >> t;
     flow = flow_cost = 0;
-    pre_flowCost = 1;                       // Just different from flow_cost
     int tmp1, tmp2, tmp3, tmp4;
     for(int i=1; i<=m; i++){
         fin >> tmp1 >> tmp2 >> tmp3 >> tmp4;
         map[tmp1].push_back(Edge(tmp2, tmp3, tmp4));
         reverse_map[tmp1].push_back(Edge(tmp2, tmp3, tmp4));
     }
-
-    /*for(int i=1; i<=n; i++)
-    {
-        cout << "Path " << i << ": ";
-        for(vector<Edge>::iterator itr = map[i].begin(); itr != map[i].end(); itr++)
-            cout << (*itr).end << ' ';
-        cout << endl;
-    }*/
 
     reach_end = true;
     int count = 0;
@@ -198,7 +168,6 @@ int main() {
         find_shortestPath();
         cout << "Iteration " << count++ << endl;
         //cout << "pre_flowcost: " << pre_flowCost <<" flowcost: " << flow_cost << endl;
-
     }
     cout << "Maximum flow: " << flow << endl;
     cout << "Minimum cost: " << flow_cost << endl;
